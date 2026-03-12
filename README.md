@@ -1,32 +1,25 @@
-# Local Kubernetes HA(high availability) Cluster Simulation on Windows
+Test 2:
+We are going to deploy a couple of dummy pods to simulate peers in a network, using a standard Go image.
 
-This repository provides the configuration and documentation required to simulate a highly available (HA) Kubernetes control plane locally on a Windows machine.
+This experiment will perfectly demonstrate the difference between the Controller Manager (which your new leader is running) and the Scheduler.
 
-This multi-node `kind` setup is an ideal sandbox for testing distributed systems. It allows you to safely experiment with control plane leader election, deploy multiple worker pods, test gRPC communication across nodes, and observe how worker pools react when a node drops offline.
+Because we only spun up control-plane nodes in our cluster, we are going to run into an intentional roadblock that will show us exactly how Kubernetes protects its management nodes.
 
-## 🛠️ Prerequisites & Tooling
+We will create a simple Deployment that asks Kubernetes to spin up two Go-based containers.
 
-To run this simulation, you need the following tools installed on your Windows machine:
+1. first we create our test-deployment.yaml file
+2. apply configuration to cluster by running:
+   kubectl apply -f p2p-deployment.yaml
+3. run: kubectl get pods
+   we'll see the status for both pods will be pending
 
-1. **Docker Desktop:** The container runtime engine.
-   - _Requirement:_ Must be installed and actively running (WSL 2 backend is recommended).
-2. **Windows Package Manager (`winget`):** The built-in Windows command-line tool.
-3. **`kind` (Kubernetes in Docker):** A tool for running local Kubernetes clusters using Docker container "nodes".
-   ```powershell
-   winget install Kubernetes.kind
-   ```
-4. **`kubectl` The Kubernetes command-line tool used to communicate with the cluster's API server:**
-   ```powershell
-   winget install Kubernetes.cli
-   ```
-5. Configuration file - ha-cluster.yaml
+To find out exactly why the Scheduler is refusing to place them on a node, we can ask Kubernetes to describe the events of one of those pods. Run this (replacing <pod-name> with one of the names from your previous output):
 
-Execution Steps: The Leader Election Experiment
+Scroll to the very bottom of the output to the Events: section. You will see a Warning from the default-scheduler saying something like: 0/3 nodes are available: 3 node(s) had untolerated taint {node-role.kubernetes.io/control-plane: }.
 
-1. kind create cluster --name ha-cluster --config ha-cluster.yaml
-2. kubectl get nodes
-3. kubectl describe lease kube-controller-manager -n kube-system(Look for the Holder Identity field. It will display the winning node's name followed by a unique session UUID)
-4. Simulate a Node Crash - docker stop <leader-node-name>
-5. Observe the Failover - Wait exactly 15 seconds (the default LeaseDurationSeconds lock time). In your first terminal, run the describe command again:
-   kubectl describe lease kube-controller-manager -n kube-system
-6. Cleanup - kind delete cluster --name ha-cluster
+4. The control plane nodes have a "Do Not Disturb" sign (a taint) to ensure they have enough processing power to manage the cluster without your worker pods getting in the way.
+
+5. Since we are just simulating this locally and don't have dedicated worker nodes attached to this cluster yet, we can simply remove that "Do Not Disturb" sign from all our nodes so the scheduler can do its job.
+   Run this command to strip the control-plane taint from every node in the cluster:
+   kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+   (Note: that minus sign - at the very end of the command is important—it tells Kubernetes to remove the taint).
