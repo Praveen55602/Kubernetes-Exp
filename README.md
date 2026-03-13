@@ -1,25 +1,27 @@
-Test 2:
-We are going to deploy a couple of dummy pods to simulate peers in a network, using a standard Go image.
+Test 3:
+we'll do the following
 
-This experiment will perfectly demonstrate the difference between the Controller Manager (which your new leader is running) and the Scheduler.
+1. create a multinode setup with 3 control plane and 3 worker nodes
+2. create 2 pods and watch them get scheduled by scheduler on the worker nodes
+3. now we'll scale up the replicas and have 10 of them and see the scheduler in action
+4. then we'll delete one of the pod and see the kubernetes healing in action.
 
-Because we only spun up control-plane nodes in our cluster, we are going to run into an intentional roadblock that will show us exactly how Kubernetes protects its management nodes.
+steps
 
-We will create a simple Deployment that asks Kubernetes to spin up two Go-based containers.
-
-1. first we create our test-deployment.yaml file
-2. apply configuration to cluster by running:
-   kubectl apply -f p2p-deployment.yaml
-3. run: kubectl get pods
-   we'll see the status for both pods will be pending
-
-To find out exactly why the Scheduler is refusing to place them on a node, we can ask Kubernetes to describe the events of one of those pods. Run this (replacing <pod-name> with one of the names from your previous output):
-
-Scroll to the very bottom of the output to the Events: section. You will see a Warning from the default-scheduler saying something like: 0/3 nodes are available: 3 node(s) had untolerated taint {node-role.kubernetes.io/control-plane: }.
-
-4. The control plane nodes have a "Do Not Disturb" sign (a taint) to ensure they have enough processing power to manage the cluster without your worker pods getting in the way.
-
-5. Since we are just simulating this locally and don't have dedicated worker nodes attached to this cluster yet, we can simply remove that "Do Not Disturb" sign from all our nodes so the scheduler can do its job.
-   Run this command to strip the control-plane taint from every node in the cluster:
-   kubectl taint nodes --all node-role.kubernetes.io/control-plane-
-   (Note: that minus sign - at the very end of the command is important—it tells Kubernetes to remove the taint).
+1. delete the old cluster if exists
+   kind delete cluster --name ha-cluster
+2. create new cluster with updated nodes
+   kind create cluster --name multi-node-cluster --config multi-node-cluster.yaml
+3. see all the nodes
+   kubectl get nodes
+4. apply the test-deployment
+   kubectl apply -f test-deployment.yaml
+5. use this command to see where each pod is allocated
+   kubectl get pods -o wide
+6. scale the replica count
+   kubectl scale deployment test-pod --replicas=10
+7. use command - kubectl scale deployment test-pod --replicas=10 and see all the replicas created and assigned to worker nodes
+8. in one terminale run this command to see live updates for the pods
+   kubectl get pods -w
+   In another one use this command to delete one of the pod and see the other to watch kubernetes heal in action
+   kubectl delete pod <pod name> (delete one of the pods)
