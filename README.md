@@ -10,6 +10,18 @@ a. curl http://auth-service
 b. curl http://chunk-manager-service
 c. curl http://tracker-service
 
+Now let's connect the cluster with our localhost so that we can similuate the calling of nodeport from outside of the cluster
+
+The Concept: We specifically configured your Gateway and Tracker services to be type: NodePort, opening ports 30001 and 30002. In a real cloud environment like AWS, you would simply type the public IP of your EC2 worker node into your browser, add :30001, and it would work perfectly.
+
+However, because you are using kind (Kubernetes IN Docker), your "Worker Nodes" are actually just virtual Docker containers running securely inside your Windows machine. Your Windows localhost and the Docker network are isolated from each other by default. If you open Chrome right now and type localhost:30001, it will likely fail to connect because Windows doesn't know how to route that traffic into the Docker container.
+
+Q: How do I call the two NodePort services from my localhost if they are hidden inside Docker?
+
+A: We bypass the Docker network entirely using Kubernetes' built-in tunneling tool: port-forward.
+
+This tool creates a direct, secure pipe from your Windows machine straight into the Service. To make it feel like a real NodePort test, we will map your local Windows ports exactly to the Service's port 80.
+
 1. create a yaml file with multiple deployments, simulating 4 microservices we'lll have 1 service for each.
 2. now the 2 services will have nodePort type so we can have external communication with them, while the other 2 will be of type clusterIp so that we can only call them from within the cluster.
 
@@ -84,3 +96,7 @@ we've successfully rolled out an update in the deployment.
     a. curl http://auth-service
     b. curl http://chunk-manager-service
     c. curl http://tracker-service
+
+18. open a tunnel to the gateway service from outside
+    kubectl port-forward service/gateway-service 30001:80
+    kubectl port-forward service/tracker-service 30002:80
