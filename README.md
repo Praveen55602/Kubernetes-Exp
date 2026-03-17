@@ -5,6 +5,11 @@ this is done by first creating new pod with the changes if the new pod is create
 
 if anything fails at any moment the entire rollout is halted.
 
+After rollout is done we'll go inside one of the container of gateway pod and then curl all other services from inside it, since they are part of the same cluster we should be able to call them directly using the name of service like -
+a. curl http://auth-service
+b. curl http://chunk-manager-service
+c. curl http://tracker-service
+
 1. create a yaml file with multiple deployments, simulating 4 microservices we'lll have 1 service for each.
 2. now the 2 services will have nodePort type so we can have external communication with them, while the other 2 will be of type clusterIp so that we can only call them from within the cluster.
 
@@ -70,3 +75,12 @@ The Concept: Up until now, we have been using "Imperative" commands (like kubect
     kubectl get pods -l app=gateway -w
 
 we've successfully rolled out an update in the deployment.
+
+15. use the below command and confirm that all services are running
+    kubectl get svc
+16. use the below command to enter the terminal of one of the gateway pod
+    kubectl exec -it <gateway-pod-name> -- sh
+17. inside the terrminal run the below commands and we should be able to see the output from them
+    a. curl http://auth-service
+    b. curl http://chunk-manager-service
+    c. curl http://tracker-service

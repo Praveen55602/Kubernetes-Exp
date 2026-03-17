@@ -11,8 +11,8 @@ spec:
     metadata: { labels: { app: gateway } }
     spec:
       containers:
-      - name: web
-        image: nginx:alpine
+        - name: web
+          image: nginx:alpine
 
 ---
 apiVersion: v1
@@ -23,6 +23,7 @@ spec:
   selector: { app: gateway }
   ports: [{ port: 80, targetPort: 8080, nodePort: 30001 }]
 
+---
 # -----------------------------------
 # 2. PUBLIC: Tracker Service (Peers)
 # -----------------------------------
@@ -36,9 +37,10 @@ spec:
     metadata: { labels: { app: tracker } }
     spec:
       containers:
-      - name: web
-        image: hashicorp/http-echo
-        args: ["-text=Public Tracker: Announce your chunks here", "-listen=:8080"]
+        - name: web
+          image: hashicorp/http-echo
+          args:
+            ["-text=Public Tracker: Announce your chunks here", "-listen=:8080"]
 ---
 apiVersion: v1
 kind: Service
@@ -48,6 +50,7 @@ spec:
   selector: { app: tracker }
   ports: [{ port: 80, targetPort: 8080, nodePort: 30002 }]
 
+---
 # -----------------------------------
 # 3. INTERNAL: Chunk Manager
 # -----------------------------------
@@ -61,9 +64,13 @@ spec:
     metadata: { labels: { app: chunk-manager } }
     spec:
       containers:
-      - name: web
-        image: hashicorp/http-echo
-        args: ["-text=Internal Chunk Manager: Processing file data", "-listen=:8080"]
+        - name: web
+          image: hashicorp/http-echo
+          args:
+            [
+              "-text=Internal Chunk Manager: Processing file data",
+              "-listen=:8080",
+            ]
 ---
 apiVersion: v1
 kind: Service
@@ -73,6 +80,7 @@ spec:
   selector: { app: chunk-manager }
   ports: [{ port: 80, targetPort: 8080 }]
 
+---
 # -----------------------------------
 # 4. INTERNAL: Auth Service
 # -----------------------------------
@@ -86,9 +94,9 @@ spec:
     metadata: { labels: { app: auth } }
     spec:
       containers:
-      - name: web
-        image: hashicorp/http-echo
-        args: ["-text=Internal Auth: Validating tokens", "-listen=:8080"]
+        - name: web
+          image: hashicorp/http-echo
+          args: ["-text=Internal Auth: Validating tokens", "-listen=:8080"]
 ---
 apiVersion: v1
 kind: Service
